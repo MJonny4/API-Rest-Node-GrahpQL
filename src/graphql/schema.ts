@@ -1,6 +1,6 @@
-const { buildSchema } = require("graphql");
+import { buildSchema } from 'graphql'
 
-module.exports = buildSchema(`
+export default buildSchema(`
     type Post {
         _id: ID!
         title: String!
@@ -61,4 +61,4 @@ module.exports = buildSchema(`
         query: RootQuery
         mutation: RootMutation
     }
-`);
+`)

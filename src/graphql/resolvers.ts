@@ -1,15 +1,17 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
-const bcrypt = require("bcryptjs");
-const validator = require("validator");
-const jwt = require("jsonwebtoken");
+import bcrypt from "bcryptjs";
+import validator from "validator";
+import jwt from "jsonwebtoken";
 require("dotenv").config();
 
-const User = require("../models/user");
-const Post = require("../models/post");
+import User from "../models/user";
+import Post from "../models/post";
 
-module.exports = {
+type CustomError = Error & { data?: any; code?: number };
+// module.exports = {
+export default {
     createUser: async function ({ userInput }, req) {
         // const email = userInput.email;
         // const name = userInput.name;
@@ -27,7 +29,7 @@ module.exports = {
         }
 
         if (errors.length > 0) {
-            const error = new Error("Invalid input.");
+            const error = new Error("Invalid input.") as CustomError;
             error.data = errors;
             error.code = 422;
             throw error;
@@ -48,13 +50,13 @@ module.exports = {
         });
 
         const createdUser = await user.save();
-        return { ...createdUser._doc, _id: createdUser._id.toString() };
+        return { ...createdUser.toObject(), _id: createdUser._id.toString() };
     },
 
     login: async function ({ email, password }) {
         const user = await User.findOne({ email: email });
         if (!user) {
-            const error = new Error("User not found.");
+            const error = new Error("User not found.") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -62,7 +64,7 @@ module.exports = {
         const isEqual = await bcrypt.compare(password, user.password);
 
         if (!isEqual) {
-            const error = new Error("Password is incorrect.");
+            const error = new Error("Password is incorrect.") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -80,7 +82,7 @@ module.exports = {
 
     createPost: async function ({ postInput }, req) {
         if (!req.isAuth) {
-            const error = new Error("Not authenticated!");
+            const error = new Error("Not authenticated!") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -101,7 +103,7 @@ module.exports = {
         }
 
         if (errors.length > 0) {
-            const error = new Error("Invalid input.");
+            const error = new Error("Invalid input.") as CustomError;
             error.data = errors;
             error.code = 422;
             throw error;
@@ -110,7 +112,7 @@ module.exports = {
         const user = await User.findById(req.userId);
 
         if (!user) {
-            const error = new Error("Invalid user.");
+            const error = new Error("Invalid user.") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -135,7 +137,7 @@ module.exports = {
 
     posts: async function ({ page }, req) {
         if (!req.isAuth) {
-            const error = new Error("Not authenticated!");
+            const error = new Error("Not authenticated!") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -168,7 +170,7 @@ module.exports = {
 
     post: async function ({ id }, req) {
         if (!req.isAuth) {
-            const error = new Error("Not authenticated!");
+            const error = new Error("Not authenticated!") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -176,7 +178,7 @@ module.exports = {
         const post = await Post.findById(id).populate("creator");
 
         if (!post) {
-            const error = new Error("No post found!");
+            const error = new Error("No post found!") as CustomError;
             error.code = 404;
             throw error;
         }
@@ -191,7 +193,7 @@ module.exports = {
 
     updatePost: async function ({ id, postInput }, req) {
         if (!req.isAuth) {
-            const error = new Error("Not authenticated!");
+            const error = new Error("Not authenticated!") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -199,13 +201,13 @@ module.exports = {
         const post = await Post.findById(id).populate("creator");
 
         if (!post) {
-            const error = new Error("No post found!");
+            const error = new Error("No post found!") as CustomError;
             error.code = 404;
             throw error;
         }
 
         if (post.creator._id.toString() !== req.userId.toString()) {
-            const error = new Error("Not authorized!");
+            const error = new Error("Not authorized!") as CustomError;
             error.code = 403;
             throw error;
         }
@@ -226,7 +228,7 @@ module.exports = {
         }
 
         if (errors.length > 0) {
-            const error = new Error("Invalid input.");
+            const error = new Error("Invalid input.") as CustomError;
             error.data = errors;
             error.code = 422;
             throw error;
@@ -251,7 +253,7 @@ module.exports = {
 
     deletePost: async function ({ id }, req) {
         if (!req.isAuth) {
-            const error = new Error("Not authenticated!");
+            const error = new Error("Not authenticated!") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -259,13 +261,13 @@ module.exports = {
         const post = await Post.findById(id);
 
         if (!post) {
-            const error = new Error("No post found!");
+            const error = new Error("No post found!") as CustomError;
             error.code = 404;
             throw error;
         }
 
         if (post.creator.toString() !== req.userId.toString()) {
-            const error = new Error("Not authorized!");
+            const error = new Error("Not authorized!") as CustomError;
             error.code = 403;
             throw error;
         }
@@ -274,14 +276,14 @@ module.exports = {
 
         await Post.findByIdAndRemove(id);
         const user = await User.findById(req.userId);
-        user.posts.pull(id);
+        user.posts = user.posts.filter(postId => postId.toString() !== id.toString());
         await user.save();
         return true;
     },
 
     user: async function (args, req) {
         if (!req.isAuth) {
-            const error = new Error("Not authenticated!");
+            const error = new Error("Not authenticated!") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -289,20 +291,20 @@ module.exports = {
         const user = await User.findById(req.userId);
 
         if (!user) {
-            const error = new Error("No user found!");
+            const error = new Error("No user found!") as CustomError;
             error.code = 404;
             throw error;
         }
 
         return {
-            ...user._doc,
+            ...user.toObject(),
             _id: user._id.toString(),
         };
     },
 
     updateStatus: async function ({ status }, req) {
         if (!req.isAuth) {
-            const error = new Error("Not authenticated!");
+            const error = new Error("Not authenticated!") as CustomError;
             error.code = 401;
             throw error;
         }
@@ -310,7 +312,7 @@ module.exports = {
         const user = await User.findById(req.userId);
 
         if (!user) {
-            const error = new Error("No user found!");
+            const error = new Error("No user found!") as CustomError;
             error.code = 404;
             throw error;
         }
@@ -319,7 +321,7 @@ module.exports = {
         await user.save();
 
         return {
-            ...user._doc,
+            ...user.toObject(),
             _id: user._id.toString(),
         };
     },

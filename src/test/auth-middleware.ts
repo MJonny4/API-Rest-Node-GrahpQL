@@ -1,4 +1,4 @@
-const authMiddleware = require("../middleware/is-auth");
+import authMiddleware from "../middleware/is-auth";
 const expect = require("chai").expect;
 
 it("should throw an error if no authorization header is present", () => {
